@@ -4,9 +4,8 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
 
     %% Initialization
     fprintf('Initialization...\n');
-
-    nFrames = length(images);
-
+  
+    nFrames = length(images); 
     img = imread(images{1});
     if(size(img,3)==1), img = cat(3,img,img,img); end
     targetLoc = region;
@@ -50,7 +49,7 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
 
     %% Extract training examples
     fprintf('  extract features...\n');
-spf1 = tic;
+    spf1 = tic;
 
     % draw positive/negative samples
     pos_examples = gen_samples('gaussian', targetLoc, opts.nPos_init*2, opts, 0.1, 5);
@@ -59,12 +58,13 @@ spf1 = tic;
     pos_examples = pos_examples(randsample(end,min(opts.nPos_init,end)),:);
 
     neg_examples = [gen_samples('uniform', targetLoc, opts.nNeg_init, opts, 1, 10);...
-        gen_samples('whole', targetLoc, opts.nNeg_init, opts)];
+    gen_samples('whole', targetLoc, opts.nNeg_init, opts)];
     r = overlap_ratio(neg_examples,targetLoc);
     neg_examples = neg_examples(r<opts.negThr_init,:);
     neg_examples = neg_examples(randsample(end,min(opts.nNeg_init,end)),:);
 
     examples = [pos_examples; neg_examples];
+       
     pos_idx = 1:size(pos_examples,1);
     neg_idx = (1:size(neg_examples,1)) + size(pos_examples,1);
 
@@ -83,7 +83,7 @@ spf1 = tic;
     fprintf('  training cnn...\n');
     rpn2t_finetune_hnm_rpn(track_net_solver, pos_data, neg_data, opts,opts.maxiter_init);
 
-spf1 = toc(spf1);
+    spf1 = toc(spf1);
     %% Initialize displayots
     if display
         figure(2);
@@ -115,6 +115,7 @@ spf1 = toc(spf1);
     neg_examples = neg_examples(randsample(end,min(opts.nNeg_update,end)),:);
 
     examples = [pos_examples; neg_examples];
+
     % to bigger crops
     if(opts.crop_largegt)
         examples = loc2bigloc(examples);
@@ -132,7 +133,8 @@ spf1 = toc(spf1);
     success_frames = 1;
     trans_f = opts.trans_f;
     scale_f = opts.scale_f;
-
+    total_time = tic;
+    prev_img = rgb2gray(img);
     %% Main loop
     for To = 2:nFrames;
         fprintf('\nProcessing frame %d/%d... \n', To, nFrames);
@@ -143,7 +145,7 @@ spf1 = toc(spf1);
         spf = tic;
         %% Estimation
         % draw target candidates
-        
+           
         samples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
 
         % to bigger crops
@@ -226,6 +228,7 @@ spf1 = toc(spf1);
             neg_examples = neg_examples(randsample(end,min(opts.nNeg_update,end)),:);
 
             examples = [pos_examples; neg_examples];
+                   
             % to bigger crops
             if(opts.crop_largegt)
                 examples = loc2bigloc(examples);
@@ -247,6 +250,8 @@ spf1 = toc(spf1);
             if(numel(success_frames)>opts.nFrames_short)
                 total_neg_data{success_frames(end-opts.nFrames_short)} = single([]);
             end
+            
+                   
         else
             total_pos_data{To} = single([]);
             total_neg_data{To} = single([]);
@@ -298,7 +303,24 @@ spf1 = toc(spf1);
             hold off;
             drawnow;
         end
+        prev_img = rgb2gray(img);
     end
+    total_time = toc(total_time);
+    file_name = ['mat_result/OTB/', videoname, '_FRPN2T'];
+    res = result;
+    results{1}.type = 'rect';
+    results{1}.res = res;
+    results{1}.fps = nFrames / total_time;
+    results{1}.len = nFrames;
+    switch videoname
+        case 'David'
+            results{1}.annoBegin = 300;
+        otherwise
+            results{1}.annoBegin = 1;          
+    end
+    results{1}.startFrame = results{1}.annoBegin;
+    save(file_name,'results') ;
+    close(aviobj);
 
 end
 

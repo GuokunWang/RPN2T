@@ -5,6 +5,7 @@ addpath utils/
 addpath utils/rpn/
 addpath tracking/
 addpath external/_caffe/matlab/
+addpath(genpath('.'));
 
 if(isempty(gcp('nocreate')))
     parpool;
@@ -25,18 +26,32 @@ global nets;
 nets = 1;
 
 %%
-root_dir = [pwd, '/dataset/VOT/2016/'];
+%root_dir = '/data1/gkwang/dataset/vot2016/';
+root_dir = '/data1/gkwang/dataset/OTB/OTB100/';
 sub_dirs = dir(root_dir);
 total = length(sub_dirs);
-for i = 3:total 
+videos = {};
+for i = 3:total
     if not(sub_dirs(i).isdir)
         continue;
     end
-  video = sub_dirs(i).name;
-clc
-%%
-conf = genConfig('vot2016',video);
+    switch(sub_dirs(i).name)
+        case {'Jogging'}
+             videos = [videos;'Jogging-1';'Jogging-2'];
+        case {'Skating2', 'Skating2'}
+             videos = [videos;'Skating2-1';'Skating2-2'];
+        otherwise
+            videos = [videos;sub_dirs(i).name];
+    end
+end
+for i = 1 : length(videos)
 
-result = rpn2t_run_rpn(video,conf.imgList, conf.gt(1,:),true);
+  video = videos{i};
+  clc
+  %%
 
+  %conf = genConfig('vot2016',video);
+  conf = genConfig('otb',video);
+  
+  result = rpn2t_run_rpn(video,conf.imgList, conf.gt(1,:),false);
 end
