@@ -1,11 +1,12 @@
 
 clear;
-
-addpath utils/
-addpath utils/rpn/
-addpath tracking/
-addpath external/_caffe/matlab/
-addpath(genpath('.'));
+init_workspace;
+lk(0);
+%addpath utils/
+%addpath utils/rpn/
+%addpath tracking/
+%addpath external/_caffe/matlab/
+%addpath(genpath('.'));
 
 if(isempty(gcp('nocreate')))
     parpool;

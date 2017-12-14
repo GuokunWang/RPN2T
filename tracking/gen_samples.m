@@ -53,6 +53,8 @@ bb_samples = [samples(:,1)-samples(:,3)/2 samples(:,2)-samples(:,4)/2 samples(:,
 bb_samples(:,1) = max(1-bb_samples(:,3)/2,min(w-bb_samples(:,3)/2, bb_samples(:,1)));
 bb_samples(:,2) = max(1-bb_samples(:,4)/2,min(h-bb_samples(:,4)/2, bb_samples(:,2)));
 bb_samples = round(bb_samples);
-
+if strcmp(type, 'gaussian')
+    bb_samples(1,:) = round(bb);
+end
 
 end

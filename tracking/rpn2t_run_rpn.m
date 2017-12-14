@@ -1,11 +1,13 @@
 function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
+    tld = tldInit();
 
     if(nargin<3), display = true; end
 
     %% Initialization
     fprintf('Initialization...\n');
-  
-    nFrames = length(images); 
+
+    nFrames = length(images);
+   
     img = imread(images{1});
     if(size(img,3)==1), img = cat(3,img,img,img); end
     targetLoc = region;
@@ -64,7 +66,15 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
     neg_examples = neg_examples(randsample(end,min(opts.nNeg_init,end)),:);
 
     examples = [pos_examples; neg_examples];
-       
+    
+    
+    pos_patchJ   = tldGetPattern(rgb2gray(img),(targetLoc + [0,0,targetLoc(1:2)])',tld.model.patchsize);
+    neg_patchJ   = tldGetPattern(rgb2gray(img),(neg_examples(1:50,:) + [zeros(50,2),neg_examples(1:50,1:2)])',tld.model.patchsize);
+    tld.pex = [tld.pex  pos_patchJ];
+    tld.nex = [tld.nex  neg_patchJ];
+    pex_len = 10 * size(pos_examples,1);
+    nex_len = 5 * size(neg_examples,1);
+    
     pos_idx = 1:size(pos_examples,1);
     neg_idx = (1:size(neg_examples,1)) + size(pos_examples,1);
 
@@ -145,8 +155,9 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
         spf = tic;
         %% Estimation
         % draw target candidates
-           
-        samples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
+        BB2 = rpn2t_flow_tracking(prev_img, rgb2gray(img), tld, targetLoc);        
+        samples = gen_samples('gaussian', BB2, opts.nSamples, opts, trans_f, scale_f);
+        %samples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
 
         % to bigger crops
         if(opts.crop_largegt)
@@ -228,7 +239,11 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
             neg_examples = neg_examples(randsample(end,min(opts.nNeg_update,end)),:);
 
             examples = [pos_examples; neg_examples];
-                   
+            pos_patchJ   = tldGetPattern(rgb2gray(img),(targetLoc + [0,0,targetLoc(1:2)])',tld.model.patchsize);
+            neg_patchJ   = tldGetPattern(rgb2gray(img),(neg_examples + [zeros(size(neg_examples,1),2),neg_examples(:,1:2)])',tld.model.patchsize);
+            tld.pex = [tld.pex, pos_patchJ];
+            tld.nex = [tld.nex, neg_patchJ];
+            
             % to bigger crops
             if(opts.crop_largegt)
                 examples = loc2bigloc(examples);
@@ -251,7 +266,13 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
                 total_neg_data{success_frames(end-opts.nFrames_short)} = single([]);
             end
             
-                   
+            if(size(tld.pex,2)>pex_len)
+                tld.pex(:,1:(size(tld.pex,2)-pex_len)) = [];
+            end
+            if(size(tld.nex,2)>nex_len)
+                tld.nex(:,1:(size(tld.nex,2)-nex_len)) = [];
+            end
+            
         else
             total_pos_data{To} = single([]);
             total_neg_data{To} = single([]);
@@ -306,6 +327,7 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
         prev_img = rgb2gray(img);
     end
     total_time = toc(total_time);
+
     file_name = ['mat_result/OTB/', videoname, '_FRPN2T'];
     res = result;
     results{1}.type = 'rect';
@@ -320,7 +342,5 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
     end
     results{1}.startFrame = results{1}.annoBegin;
     save(file_name,'results') ;
-    close(aviobj);
-
 end
 

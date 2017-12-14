@@ -2,3 +2,6 @@
 
 # ignore output
 output/
+mat_result/
+*.mexa64
+*.o
