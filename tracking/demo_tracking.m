@@ -1,7 +1,7 @@
 
 clear;
 init_workspace;
-lk(0);
+%lk(0);
 %addpath utils/
 %addpath utils/rpn/
 %addpath tracking/
@@ -50,7 +50,7 @@ for i = 1 : length(videos)
   video = videos{i};
   clc
   %%
-
+  lk(0);
   %conf = genConfig('vot2016',video);
   conf = genConfig('otb',video);
   

@@ -64,8 +64,8 @@ end
 if isunix
     disp('Unix');
     
-    include = ' -I/usr/local/include/opencv/ -I/usr/local/include/';
-    libpath = '/usr/local/lib/';
+    include = ' -I/usr/include/opencv/ -I/usr/include/';
+    libpath = '/usr/lib/x86_64-linux-gnu/';
     
     files = dir([libpath 'libopencv*.so']);
     

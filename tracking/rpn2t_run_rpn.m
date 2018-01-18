@@ -327,8 +327,13 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
         prev_img = rgb2gray(img);
     end
     total_time = toc(total_time);
-
-    file_name = ['mat_result/OTB/', videoname, '_FRPN2T'];
+    version = 1;
+    dir_name = sprintf('mat_result/OTB/v%d/', version);
+    if ~exist(dir_name)
+        mkdir(dir_name)
+    end
+    file_name = sprintf([dir_name videoname '_FRPNv%d'],version);
+    %file_name = ['mat_result/OTB/', videoname, '_FRPN2T'];
     res = result;
     results{1}.type = 'rect';
     results{1}.res = res;

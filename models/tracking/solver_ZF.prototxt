@@ -10,5 +10,5 @@ weight_decay: 0.0005
 # We disable standard caffe solver snapshotting and implement our own snapshot
 snapshot: 0
 #debug_info: true
-
+random_seed: 50
 

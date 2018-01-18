@@ -8,7 +8,7 @@ function [opts] = rpn2t_init(image)
     %opts.net_file = net;
     global versions;
     global nets;
-    
+    rng('default'); 
     if     versions==1
         if nets==1
             opts.caffe_feat_extract_net = 'models/rpn/proposal_test_init_ZF.prototxt';
