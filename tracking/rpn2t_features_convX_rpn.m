@@ -2,6 +2,10 @@ function [ feat ] = rpn2t_features_convX_rpn(net, img, boxes, opts)
 
 tic
     n = size(boxes,1);
+    if n == 1
+        boxes = repmat(boxes,[2,1]);
+        n = 2;
+    end
     ims = rpn2t_extract_regions(img, boxes, opts);
     nBatches = ceil(n/opts.batchSize_test);
     
@@ -14,10 +18,11 @@ tic
 
         batch = ims(:,:,:,opts.batchSize_test*(i-1)+1:min(end,opts.batchSize_test*i));
         % permute data into caffe c++ memory, thus [num, channels, height, width]
+
         batch = batch(:, :, [3, 2, 1], :); % from rgb to brg
         batch = permute(batch, [2, 1, 3, 4]);
         batch = single(batch);
-
+        
         net_inputs = {batch};
 
         % Reshape net's input blobs

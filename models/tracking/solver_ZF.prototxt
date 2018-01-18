@@ -1,4 +1,4 @@
-net: "models/tracking/tracking_train_ZF.prototxt"
+net: "models/tracking/tracking_train_ZF_siamese.prototxt"
 base_lr: 0.0005
 lr_policy: "step"
 gamma: 0.1

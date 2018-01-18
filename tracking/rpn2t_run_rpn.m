@@ -1,4 +1,5 @@
 function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
+
     tld = tldInit();
 
     if(nargin<3), display = true; end
@@ -55,6 +56,9 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
 
     % draw positive/negative samples
     pos_examples = gen_samples('gaussian', targetLoc, opts.nPos_init*2, opts, 0.1, 5);
+    
+    init_example = pos_examples(1,:);
+    
     r = overlap_ratio(pos_examples,targetLoc);
     pos_examples = pos_examples(r>opts.posThr_init,:);
     pos_examples = pos_examples(randsample(end,min(opts.nPos_init,end)),:);
@@ -81,17 +85,19 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
     % to bigger crops
     if(opts.crop_largegt)
         examples = loc2bigloc(examples);
+        init_example = loc2bigloc(init_example);
     end
 
     % extract features    
     feat_conv = rpn2t_features_convX_rpn(feat_extract_net, img, examples, opts);
+    feat_init = rpn2t_features_convX_rpn(feat_extract_net, img, init_example, opts);
     pos_data = feat_conv(:,:,:,pos_idx);
     neg_data = feat_conv(:,:,:,neg_idx);
 
 
     %% Learning CNN
     fprintf('  training cnn...\n');
-    rpn2t_finetune_hnm_rpn(track_net_solver, pos_data, neg_data, opts,opts.maxiter_init);
+    rpn2t_finetune_hnm_rpn(track_net_solver, feat_init, pos_data, neg_data, opts,opts.maxiter_init);
 
     spf1 = toc(spf1);
     %% Initialize displayots
@@ -168,12 +174,15 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
         end
 
         % evaluate the candidates        
-        feat_fc = rpn2t_features_fcX_rpn(track_net_solver, feat_conv, opts);
+        [feat_fc, feat_fc_h] = rpn2t_features_fcX_rpn(track_net_solver, feat_init, feat_conv, samples, targetLoc,opts);
 
         feat_fc = feat_fc';
-        [scores,idx] = sort(feat_fc,'descend');
+        feat_fc_h = feat_fc_h';
+        [scores,idx] = sort(feat_fc_h,'descend');
+        %[scores,idx] = sort(feat_fc,'descend');
 
-        target_score = mean(scores(1:5));
+        %target_score = mean(scores(1:5));
+        target_score = mean(feat_fc(idx(1:5)));
         targetLoc = round(mean(samples(idx(1:5),:)));
         if(opts.crop_largegt)
             targetLoc_big = round(mean(examples_big(idx(1:5),:)));
@@ -229,6 +238,9 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
         
         if(target_score>score_thres)
             pos_examples = gen_samples('gaussian', targetLoc, opts.nPos_update*2, opts, 0.1, 5);
+            
+            init_example = pos_examples(1,:);
+            
             r = overlap_ratio(pos_examples,targetLoc);
             pos_examples = pos_examples(r>opts.posThr_update,:);
             pos_examples = pos_examples(randsample(end,min(opts.nPos_update,end)),:);
@@ -247,12 +259,15 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
             % to bigger crops
             if(opts.crop_largegt)
                 examples = loc2bigloc(examples);
+                init_example = loc2bigloc(init_example);
             end            
             
             pos_idx = 1:size(pos_examples,1);
             neg_idx = (1:size(neg_examples,1)) + size(pos_examples,1);
           
             feat_conv = rpn2t_features_convX_rpn(feat_extract_net, img, examples, opts);
+            feat_init = rpn2t_features_convX_rpn(feat_extract_net, img, init_example, opts);
+            
             total_pos_data{To} = feat_conv(:,:,:,pos_idx);
             total_neg_data{To} = feat_conv(:,:,:,neg_idx);
             total_pos_data{To} = permute(total_pos_data{To}, [1 4 3 2]);
@@ -297,7 +312,7 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
                 neg_data = permute(neg_data, [1 4 3 2]);
 
             %fprintf();            
-            rpn2t_finetune_hnm_rpn(track_net_solver,pos_data,neg_data,opts,opts.maxiter_update);
+            rpn2t_finetune_hnm_rpn(track_net_solver,feat_init,pos_data,neg_data,opts,opts.maxiter_update);
         end
 
         spf = toc(spf);
@@ -327,7 +342,7 @@ function [ result ] = rpn2t_run_rpn(videoname,images, region, display)
         prev_img = rgb2gray(img);
     end
     total_time = toc(total_time);
-    version = 1;
+    version = 2;
     dir_name = sprintf('mat_result/OTB/v%d/', version);
     if ~exist(dir_name)
         mkdir(dir_name)

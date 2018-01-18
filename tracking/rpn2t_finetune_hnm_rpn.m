@@ -1,4 +1,4 @@
-function [poss, hardnegs] = rpn2t_finetune_hnm_rpn(solver,pos_data,neg_data,opts,maxiter)
+function [poss, hardnegs] = rpn2t_finetune_hnm_rpn(solver,feat_init,pos_data,neg_data,opts,maxiter)
 
  opts.useGpu = true;
  opts.conserveMemory = true ;
@@ -83,14 +83,18 @@ for t=1:opts.maxiter
         
         batch = single(batch);
 
+        batch_p = repmat(feat_init, [1,1,1,size(batch,4) / size(feat_init, 4)]);
+        batch_p = single(batch_p);
+        
         label_tmp = rand(size(batch,1), size(batch,2), 1, size(batch,4));
         weight_tmp = rand(size(label_tmp));
         %net_inputs = {batch, label_tmp, weight_tmp,label_tmp,weight_tmp};
-        net_inputs = {batch, label_tmp, label_tmp};
-
+        %net_inputs = {batch, label_tmp, label_tmp};
+        net_inputs = {batch, batch_p, label_tmp, label_tmp};
         % Reshape net's input blobs
         %solver.net.reshape_as_input(net_inputs);
         solver.net.blobs('data').reshape(size(batch))
+        solver.net.blobs('data_p').reshape(size(batch_p))
         solver.net.blobs('labels1').reshape(size(label_tmp))
         solver.net.blobs('labels2').reshape(size(label_tmp))
         solver.net.reshape();
@@ -126,6 +130,9 @@ for t=1:opts.maxiter
     
     batch = cat(4,pos_data(:,:,:,train_pos((t-1)*opts.batch_pos+1:t*opts.batch_pos)),...
         im_hneg);
+
+    batch_p = repmat(feat_init, [1,1,1,size(batch,4) / size(feat_init, 4)]);
+    batch_p = single(batch_p);
     
     labels1 = ones(size(batch,1), size(batch,2), 1, size(batch,4));
     labels1(:,:,:,1:opts.batch_pos) = repmat(not(opts.weight_mask1),[1 1 1 opts.batch_pos]);
@@ -145,6 +152,7 @@ for t=1:opts.maxiter
     labels1(label_weights1 == 0) = -1;
     labels2(label_weights2 == 0) = -1;
     solver.net.blobs('data').reshape(size(batch));
+    solver.net.blobs('data_p').reshape(size(batch_p));
     solver.net.blobs('labels1').reshape(size(labels1))
     solver.net.blobs('labels2').reshape(size(labels2))
     solver.net.reshape();
@@ -152,6 +160,7 @@ for t=1:opts.maxiter
     % one iter SGD update
     %solver.net.set_input_data(net_inputs);
     solver.net.blobs('data').set_data(batch);
+    solver.net.blobs('data_p').set_data(batch_p);
     solver.net.blobs('labels1').set_data(labels1);
     solver.net.blobs('labels2').set_data(labels2);
     solver.step(1);
