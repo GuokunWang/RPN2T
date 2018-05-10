@@ -28,11 +28,18 @@ This code is tested on 64 bit Linux (Ubuntu 14.04 LTS).
   make all -j8
   make matcaffe
   ```  
-
+  > Compile LK algorithm (using Matlab)
+  ```
+  compile
+  ```
 ### Online Tracking using RPN2T
 
 **Demo**
-  > Run 'tracking/demo_tracking.m'.
+  > Run (using Matlab at RPN2T_ROOT Folder) 
+  ```
+  addpath(genpath('./'));
+  demo_tracking
+  ```
 
 ### Result 
 
