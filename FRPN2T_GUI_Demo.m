@@ -80,7 +80,7 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
     global is_open;
     is_open = true;
-    [filename pathname] =uigetfile({'*.avi';'*.mp4';'*.*'},'打开图片');
+    [filename pathname] =uigetfile({'*.avi';'*.mp4';'*.*'},'打开视频');
     %%字符串拼接 拼装路径 以上面例子说所述 此时 srt=F:\data\1.jpg
     str=[pathname filename];
     %%打开图像
