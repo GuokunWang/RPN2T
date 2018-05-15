@@ -16,10 +16,10 @@
 % along with TLD.  If not, see <http://www.gnu.org/licenses/>.
 
 beep off;
-clc; clf;
+%clc; clf;
 clear tld;
-clear global;
+%clear global;
 warning off all;
-close all;
+%close all;
 addpath(genpath('.'));
 tic;
